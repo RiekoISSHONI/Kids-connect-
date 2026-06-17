@@ -46,6 +46,20 @@ Tap the **Parent** tab and enter the demo PIN **`1234`**. Grown-ups can:
 - See the **approved circle** and remove anyone
 - Review a **recent activity** log
 
+## ☁️ Deploy to Vercel
+
+This is a static site (no build step), so Vercel hosts it with zero config.
+
+1. Go to **https://vercel.com/new**
+2. **Import** the `RiekoISSHONI/Kids-connect-` repository
+3. Framework Preset: **Other** · Build Command: *(leave empty)* · Output Directory: *(leave empty / `.`)*
+4. Click **Deploy**
+
+You'll get a live URL like `https://kids-connect.vercel.app`. Every push to `main`
+auto-deploys. The included `vercel.json` enables clean URLs and sane headers.
+
+Prefer the CLI? `npm i -g vercel && vercel` from this folder, then `vercel --prod`.
+
 ## 🗂️ Project structure
 
 | File         | Purpose                                                        |
