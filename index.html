@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#6c5ce7" />
+  <title>KidsConnect — stay close, safely</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- The whole app lives inside a phone frame so it reads as a mobile app -->
+  <div class="device">
+    <div class="device__notch"></div>
+    <div class="device__screen">
+
+      <!-- Status bar -->
+      <div class="statusbar">
+        <span id="statusClock">9:41</span>
+        <span class="statusbar__icons">📶 🔋</span>
+      </div>
+
+      <!-- App content gets rendered here, one screen at a time -->
+      <main id="app" class="app"></main>
+
+      <!-- Bottom tab navigation -->
+      <nav class="tabbar" id="tabbar">
+        <button class="tab" data-tab="home"><span class="tab__icon">🏠</span><span>Home</span></button>
+        <button class="tab" data-tab="friends"><span class="tab__icon">👫</span><span>Friends</span></button>
+        <button class="tab" data-tab="world"><span class="tab__icon">🌍</span><span>World</span></button>
+        <button class="tab" data-tab="calls"><span class="tab__icon">📅</span><span>Calls</span></button>
+        <button class="tab tab--parent" data-tab="parent"><span class="tab__icon">🔒</span><span>Parent</span></button>
+      </nav>
+
+    </div>
+  </div>
+
+  <!-- Modal layer (recording, PIN pad, scheduling, etc.) -->
+  <div id="modalRoot"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
