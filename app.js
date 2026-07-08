@@ -25,22 +25,20 @@ function seedState() {
       city: "San Francisco",
       offset: -7,          // UTC offset in hours (PDT in June)
       lon: -122.4, lat: 37.8,
-      code: "FOX-2468",    // this kid's own unique friend code to share
     },
     // status: "approved" = parent-approved connection, "pending" = waiting on parent
+    // phone = the friend's WhatsApp number (E.164), used to launch WhatsApp/FaceTime
     friends: [
-      { id: "mia",   name: "Mia",   avatar: "🐰", flag: "🇯🇵", city: "Tokyo",     offset: 9,  lon: 139.7, lat: 35.7, online: true,  status: "approved" },
-      { id: "leo",   name: "Leo",   avatar: "🦁", flag: "🇬🇧", city: "London",    offset: 1,  lon: -0.1,  lat: 51.5, online: true,  status: "approved" },
-      { id: "aria",  name: "Aria",  avatar: "🐨", flag: "🇺🇸", city: "New York",  offset: -4, lon: -74.0, lat: 40.7, online: false, status: "approved" },
-      { id: "kai",   name: "Kai",   avatar: "🐯", flag: "🇦🇺", city: "Sydney",    offset: 10, lon: 151.2, lat: -33.9, online: false, status: "approved" },
-      { id: "sofia", name: "Sofia", avatar: "🦄", flag: "🇧🇷", city: "São Paulo", offset: -3, lon: -46.6, lat: -23.5, online: true,  status: "approved" },
+      { id: "mia",   name: "Mia",   avatar: "🐰", flag: "🇯🇵", city: "Tokyo",     offset: 9,  lon: 139.7, lat: 35.7, online: true,  status: "approved", phone: "+81 90 1234 5678" },
+      { id: "leo",   name: "Leo",   avatar: "🦁", flag: "🇬🇧", city: "London",    offset: 1,  lon: -0.1,  lat: 51.5, online: true,  status: "approved", phone: "+44 7700 900123" },
+      { id: "aria",  name: "Aria",  avatar: "🐨", flag: "🇺🇸", city: "New York",  offset: -4, lon: -74.0, lat: 40.7, online: false, status: "approved", phone: "+1 212 555 0142" },
+      { id: "kai",   name: "Kai",   avatar: "🐯", flag: "🇦🇺", city: "Sydney",    offset: 10, lon: 151.2, lat: -33.9, online: false, status: "approved", phone: "" },
+      { id: "sofia", name: "Sofia", avatar: "🦄", flag: "🇧🇷", city: "São Paulo", offset: -3, lon: -46.6, lat: -23.5, online: true,  status: "approved", phone: "+55 11 91234 5678" },
       // A connection request already waiting for a grown-up to approve:
-      { id: "emma",  name: "Emma",  avatar: "🐼", flag: "🇮🇳", city: "Mumbai",    offset: 5.5, lon: 72.8, lat: 19.0, online: true, status: "pending" },
+      { id: "emma",  name: "Emma",  avatar: "🐼", flag: "🇮🇳", city: "Mumbai",    offset: 5.5, lon: 72.8, lat: 19.0, online: true, status: "pending", phone: "+91 98765 43210" },
     ],
-    // video messages the kid has sent / received
-    videos: [
-      { id: vid(), from: "leo", to: "me", caption: "Look at my new bike! 🚲", when: Date.now() - 3600e3, watched: false },
-    ],
+    // recorded video messages are sent THROUGH WhatsApp, so we just keep a small history
+    videos: [],
     // scheduled video calls; status: pending | approved | declined
     calls: [
       { id: vid(), friend: "mia", when: nextSat(16), status: "approved" },
@@ -116,6 +114,19 @@ function fmtWhen(ts) {
     + " · " + fmtTime(d);
 }
 
+/* ---------- Deep links: hand off to WhatsApp / FaceTime ---------- */
+function phoneDigits(p) { return String(p || "").replace(/[^\d]/g, ""); }
+function hasPhone(f) { return phoneDigits(f && f.phone).length >= 6; }
+function waLink(f, text) {
+  const d = phoneDigits(f.phone);
+  return `https://wa.me/${d}${text ? "?text=" + encodeURIComponent(text) : ""}`;
+}
+function ftLink(f) { return `facetime://${phoneDigits(f.phone)}`; }
+function openExternal(url) {
+  // open in a new tab so the prototype stays put; on a phone this fires the app
+  window.open(url, "_blank");
+}
+
 /* ---------- Render router ---------- */
 function render() {
   const app = $("#app");
@@ -150,7 +161,6 @@ function renderTabs() {
 function viewHome() {
   const online = friendsApproved().filter(f => f.online);
   const waiting = approvalCount();
-  const newVideos = state.videos.filter(v => v.to === "me" && !v.watched).length;
   return `
     <div class="row" style="margin:8px 2px 14px">
       <div class="brand"><span class="brand__logo">💜</span> KidsConnect</div>
@@ -161,11 +171,11 @@ function viewHome() {
       <p>${online.length} friend${online.length === 1 ? "" : "s"} online now • ${friendsApproved().length} connected</p>
     </div>
 
-    ${newVideos ? `<div class="card row" data-go="friends" style="cursor:pointer">
-        <div class="avatar">🎬</div>
-        <div><div class="name">${newVideos} new video message${newVideos === 1 ? "" : "s"}</div>
-        <div class="sub">Tap to watch</div></div><div class="spacer"></div><span>›</span>
-      </div>` : ""}
+    <div class="card row" style="background:#eafff6">
+      <div class="avatar">💬</div>
+      <div><div class="name">Calls happen in WhatsApp / FaceTime</div>
+      <div class="note">KidsConnect keeps your friends, times & plans organised — tap Call to open the real app.</div></div>
+    </div>
 
     ${waiting ? `<div class="card row" style="border-left:5px solid var(--sun)">
         <div class="avatar">⏳</div>
@@ -177,7 +187,7 @@ function viewHome() {
     <div class="quick">
       <button class="quick__btn" data-act="record">
         <span class="em">🎬</span><span class="lbl">Send a video</span>
-        <div class="desc">To a connected friend</div>
+        <div class="desc">Share via WhatsApp</div>
       </button>
       <button class="quick__btn" data-go="world">
         <span class="em">🌍</span><span class="lbl">World map</span>
@@ -185,7 +195,7 @@ function viewHome() {
       </button>
       <button class="quick__btn" data-go="calls">
         <span class="em">📹</span><span class="lbl">Video call</span>
-        <div class="desc">See who's online</div>
+        <div class="desc">Open WhatsApp / FaceTime</div>
       </button>
       <button class="quick__btn" data-act="schedule">
         <span class="em">📅</span><span class="lbl">Plan a call</span>
@@ -213,9 +223,8 @@ function friendRowOnline(f) {
 function viewFriends() {
   const approved = friendsApproved();
   const pend = pendingFriends();
-  const inbox = state.videos.filter(v => v.to === "me");
   return `
-    <div class="screen-head"><h1>Friends</h1><p>You can only message friends a grown-up approved 💜</p></div>
+    <div class="screen-head"><h1>Friends</h1><p>You can only call friends a grown-up approved 💜</p></div>
 
     <button class="btn btn--block btn--pink" data-act="addfriend">＋ Add a new friend</button>
 
@@ -227,7 +236,7 @@ function viewFriends() {
       </div>`).join("")}` : ""}
 
     <div class="section-title">My connected friends (${approved.length})</div>
-    ${approved.map(f => {
+    ${approved.length ? approved.map(f => {
       const t = fmtTime(localAt(f.offset));
       return `<div class="card">
         <div class="row">
@@ -235,26 +244,16 @@ function viewFriends() {
           <div>
             <div class="name">${esc(f.name)} ${f.flag}</div>
             <div class="sub">${esc(f.city)} • ${t} ${f.online ? "• online" : "• offline"}</div>
+            ${hasPhone(f) ? `<div class="note">💬 ${esc(f.phone)}</div>` : `<div class="note" style="color:var(--red)">⚠️ No WhatsApp number — ask a grown-up to add it</div>`}
           </div>
         </div>
         <div class="row" style="margin-top:12px;gap:8px">
           <button class="btn btn--sm" data-record="${f.id}">🎬 Video</button>
-          <button class="btn btn--sm btn--mint" data-call="${f.id}" ${f.online ? "" : "disabled"}>📹 Call</button>
+          <button class="btn btn--sm btn--mint" data-call="${f.id}">📹 Call</button>
           <button class="btn btn--sm btn--ghost" data-schedulewith="${f.id}">📅 Plan</button>
         </div>
       </div>`;
-    }).join("")}
-
-    <div class="section-title">My video inbox</div>
-    ${inbox.length ? inbox.slice().reverse().map(v => {
-      const f = friendById(v.from);
-      return `<div class="card row" data-watch="${v.id}" style="cursor:pointer">
-        <div class="avatar">${f ? f.avatar : "🎬"}${!v.watched ? '<span class="dot dot--on"></span>' : ""}</div>
-        <div><div class="name">${f ? esc(f.name) : "Friend"} ${!v.watched ? "🔴" : ""}</div>
-        <div class="sub">${esc(v.caption || "Video message")} • ${fmtWhen(v.when)}</div></div>
-        <div class="spacer"></div><span>▶️</span>
-      </div>`;
-    }).join("") : `<div class="empty"><span class="big">📭</span>No videos yet</div>`}
+    }).join("") : `<div class="empty"><span class="big">👋</span>No friends yet — add one above!</div>`}
   `;
 }
 
@@ -398,7 +397,7 @@ function viewParent() {
       <div class="row">
         <div class="avatar avatar--lg">${f.avatar}</div>
         <div><div class="name">${esc(f.name)} ${f.flag}</div><div class="sub">${esc(f.city)}</div>
-        <div class="note">Wants to connect with your child</div></div>
+        <div class="note">💬 ${esc(f.phone || "no number")} — wants to connect with your child</div></div>
       </div>
       <div class="row" style="margin-top:12px;gap:8px">
         <button class="btn btn--green btn--sm" data-approvefriend="${f.id}">✅ Approve</button>
@@ -423,11 +422,17 @@ function viewParent() {
     }).join("") : `<div class="empty">No pending call requests</div>`}
 
     <div class="section-title">Approved circle (${friendsApproved().length})</div>
-    ${friendsApproved().map(f => `<div class="card row">
-      <div class="avatar">${f.avatar}</div>
-      <div><div class="name">${esc(f.name)} ${f.flag}</div><div class="sub">${esc(f.city)}</div></div>
-      <div class="spacer"></div>
-      <button class="btn btn--ghost btn--sm" data-removefriend="${f.id}">Remove</button>
+    ${friendsApproved().map(f => `<div class="card">
+      <div class="row">
+        <div class="avatar">${f.avatar}</div>
+        <div><div class="name">${esc(f.name)} ${f.flag}</div>
+        <div class="sub">${esc(f.city)}</div>
+        <div class="note">${hasPhone(f) ? "💬 " + esc(f.phone) : '<span style="color:var(--red)">⚠️ no WhatsApp number</span>'}</div></div>
+      </div>
+      <div class="row" style="margin-top:10px;gap:8px">
+        <button class="btn btn--ghost btn--sm" data-editphone="${f.id}">✏️ Edit number</button>
+        <button class="btn btn--ghost btn--sm" data-removefriend="${f.id}">Remove</button>
+      </div>
     </div>`).join("")}
 
     <div class="section-title">Recent activity</div>
@@ -451,7 +456,6 @@ function bindScreen() {
   app.querySelectorAll("[data-go]").forEach(el => el.onclick = () => switchTab(el.dataset.go));
   app.querySelectorAll("[data-call]").forEach(el => el.onclick = () => startCall(el.dataset.call));
   app.querySelectorAll("[data-record]").forEach(el => el.onclick = () => openRecorder(el.dataset.record));
-  app.querySelectorAll("[data-watch]").forEach(el => el.onclick = () => watchVideo(el.dataset.watch));
   app.querySelectorAll("[data-schedulewith]").forEach(el => el.onclick = () => openSchedule(el.dataset.schedulewith));
 
   app.querySelectorAll("[data-act]").forEach(el => el.onclick = () => {
@@ -467,6 +471,7 @@ function bindScreen() {
   app.querySelectorAll("[data-approvefriend]").forEach(el => el.onclick = () => approveFriend(el.dataset.approvefriend));
   app.querySelectorAll("[data-declinefriend]").forEach(el => el.onclick = () => declineFriend(el.dataset.declinefriend));
   app.querySelectorAll("[data-removefriend]").forEach(el => el.onclick = () => removeFriend(el.dataset.removefriend));
+  app.querySelectorAll("[data-editphone]").forEach(el => el.onclick = () => editPhone(el.dataset.editphone));
   app.querySelectorAll("[data-approvecall]").forEach(el => el.onclick = () => approveCall(el.dataset.approvecall));
   app.querySelectorAll("[data-declinecall]").forEach(el => el.onclick = () => declineCall(el.dataset.declinecall));
 
@@ -534,7 +539,8 @@ function openRecorder(friendId) {
       <input id="recCaption" placeholder="Say something fun!" maxlength="80" />
     </div>
     <button class="btn btn--block" id="recToggle">● Start recording</button>
-    <button class="btn btn--block btn--green" id="recSend" style="margin-top:8px;display:none">Send video ✈️</button>
+    <button class="btn btn--block btn--green" id="recSend" style="margin-top:8px;display:none">Send in WhatsApp 💬</button>
+    <div class="note" style="margin-top:10px">Your video opens in WhatsApp so you can send it to your friend.</div>
   `);
 
   const sheet = $(".sheet");
@@ -561,50 +567,53 @@ function openRecorder(friendId) {
     }
   };
   sendBtn.onclick = () => {
-    const cap = $("#recCaption").value.trim();
-    state.videos.push({ id: vid(), from: "me", to: target, caption: cap, when: Date.now(), watched: true });
-    addLog(`${state.me.name} sent a video to ${friendById(target).name}`);
-    save(); closeSheet();
-    toast(`Video sent to ${friendById(target).name} ✈️`);
+    const f = friendById(target);
+    const cap = $("#recCaption").value.trim() || `Hi ${f.name}! Here's a video for you 🎬`;
+    addLog(`${state.me.name} shared a video to ${f.name} via WhatsApp`);
+    save();
+    // Hand off to the phone's share sheet (lets them attach the clip + pick WhatsApp);
+    // fall back to opening the WhatsApp chat with the caption prefilled.
+    if (navigator.share) {
+      navigator.share({ title: "KidsConnect video", text: cap }).catch(() => {});
+    } else if (hasPhone(f)) {
+      openExternal(waLink(f, cap));
+    } else {
+      toast("Ask a grown-up to add a WhatsApp number");
+      return;
+    }
+    closeSheet();
+    toast(`Opening WhatsApp to send to ${f.name} 💬`);
   };
-}
-
-function watchVideo(id) {
-  const v = state.videos.find(x => x.id === id); if (!v) return;
-  v.watched = true; save();
-  const f = friendById(v.from);
-  openSheet(`
-    <h2>${f ? f.avatar + " " + esc(f.name) : "Video"}</h2>
-    <div class="recorder"><div class="selfie">${f ? f.avatar : "🎬"}</div>
-      <div class="timer">▶️ playing…</div></div>
-    <div class="note">${esc(v.caption || "Video message")}</div>
-    <button class="btn btn--block btn--mint" id="reply" style="margin-top:14px">🎬 Send a video back</button>
-  `);
-  $("#reply").onclick = () => { closeSheet(); openRecorder(v.from); };
-  render(); // refresh unread badge
 }
 
 /* 2 & 3 handled in views (world map / presence) */
 
-/* video call (only approved, used for online friends or approved scheduled calls) */
+/* Launch a real video call by handing off to WhatsApp or FaceTime.
+   (KidsConnect never carries the video itself — it just opens the trusted app.) */
 function startCall(friendId) {
   const f = friendById(friendId); if (!f) return;
   if (f.status !== "approved") { toast("This friend isn't approved yet"); return; }
-  let secs = 0;
+  if (!hasPhone(f)) {
+    openSheet(`
+      <h2>No number yet 📵</h2>
+      <div class="note">A grown-up needs to add ${esc(f.name)}'s WhatsApp number before you can call.</div>
+      <button class="btn btn--block btn--ghost" id="closeNoNum" style="margin-top:14px">OK</button>
+    `);
+    $("#closeNoNum").onclick = closeSheet;
+    return;
+  }
+  const t = fmtTime(localAt(f.offset));
   openSheet(`
-    <h2>📹 Calling ${esc(f.name)}…</h2>
-    <div class="recorder" style="aspect-ratio:3/4">
-      <div class="selfie">${f.avatar}</div>
-      <div class="rec-dot" style="display:flex"><i></i> LIVE</div>
-      <div class="timer" id="callTimer">0:00</div>
-      <div style="position:absolute;bottom:12px;left:12px;font-size:30px;background:#0006;border-radius:12px;padding:4px 8px">${state.me.avatar}</div>
-    </div>
-    <button class="btn btn--block" style="background:var(--red)" id="hang">End call</button>
+    <h2>Call ${esc(f.name)} ${f.flag}</h2>
+    <div class="note">It's ${t} for ${esc(f.name)} in ${esc(f.city)} — ${diffText(f.offset).txt}. Pick an app to call in:</div>
+    <button class="btn btn--block btn--green" id="callWa" style="margin-top:14px">💬 Open WhatsApp</button>
+    <button class="btn btn--block btn--mint" id="callFt" style="margin-top:8px">🍏 FaceTime (Apple)</button>
+    <button class="btn btn--block btn--ghost" id="callCancel" style="margin-top:8px">Cancel</button>
+    <div class="note" style="margin-top:10px">On a phone these open the real app. WhatsApp opens the chat — tap its 📹 to start the video call.</div>
   `);
-  const tEl = $("#callTimer");
-  const t = setInterval(() => { secs++; tEl.textContent = `${Math.floor(secs/60)}:${String(secs%60).padStart(2,"0")}`; }, 1000);
-  addLog(`${state.me.name} video-called ${f.name}`); save();
-  $("#hang").onclick = () => { clearInterval(t); closeSheet(); toast("Call ended 👋"); };
+  $("#callWa").onclick = () => { addLog(`${state.me.name} opened WhatsApp to call ${f.name}`); save(); openExternal(waLink(f)); closeSheet(); toast("Opening WhatsApp 💬"); };
+  $("#callFt").onclick = () => { addLog(`${state.me.name} opened FaceTime to call ${f.name}`); save(); openExternal(ftLink(f)); closeSheet(); toast("Opening FaceTime 🍏"); };
+  $("#callCancel").onclick = closeSheet;
 }
 
 /* 4. Schedule a call -> needs parent approval */
@@ -664,66 +673,70 @@ function openSchedule(friendId) {
 }
 
 /* Add friend -> creates a pending request for parent approval */
-/* Directory of other kids, each with their OWN unique friend code.
-   Kids connect by typing a friend's code — not by browsing a list. */
-const FRIEND_POOL = [
-  { name: "Yuki", avatar: "🐱", flag: "🇯🇵", city: "Osaka",   offset: 9,  lon: 135.5, lat: 34.7, code: "CAT-1357" },
-  { name: "Liam", avatar: "🐵", flag: "🇮🇪", city: "Dublin",  offset: 1,  lon: -6.3,  lat: 53.3, code: "MON-9081" },
-  { name: "Zara", avatar: "🦋", flag: "🇦🇪", city: "Dubai",   offset: 4,  lon: 55.3,  lat: 25.2, code: "FLY-4422" },
-  { name: "Ben",  avatar: "🐧", flag: "🇨🇦", city: "Toronto", offset: -4, lon: -79.4, lat: 43.7, code: "PEN-7733" },
-  { name: "Lina", avatar: "🐢", flag: "🇩🇪", city: "Berlin",  offset: 2,  lon: 13.4,  lat: 52.5, code: "TUR-5566" },
+/* City presets so the world map + time difference work for a new friend */
+const CITIES = [
+  { city: "Tokyo",       flag: "🇯🇵", offset: 9,    lon: 139.7, lat: 35.7 },
+  { city: "London",      flag: "🇬🇧", offset: 1,    lon: -0.1,  lat: 51.5 },
+  { city: "New York",    flag: "🇺🇸", offset: -4,   lon: -74.0, lat: 40.7 },
+  { city: "Los Angeles", flag: "🇺🇸", offset: -7,   lon: -118.2, lat: 34.1 },
+  { city: "Toronto",     flag: "🇨🇦", offset: -4,   lon: -79.4, lat: 43.7 },
+  { city: "São Paulo",   flag: "🇧🇷", offset: -3,   lon: -46.6, lat: -23.5 },
+  { city: "Dublin",      flag: "🇮🇪", offset: 1,    lon: -6.3,  lat: 53.3 },
+  { city: "Paris",       flag: "🇫🇷", offset: 2,    lon: 2.4,   lat: 48.9 },
+  { city: "Berlin",      flag: "🇩🇪", offset: 2,    lon: 13.4,  lat: 52.5 },
+  { city: "Dubai",       flag: "🇦🇪", offset: 4,    lon: 55.3,  lat: 25.2 },
+  { city: "Mumbai",      flag: "🇮🇳", offset: 5.5,  lon: 72.8,  lat: 19.0 },
+  { city: "Singapore",   flag: "🇸🇬", offset: 8,    lon: 103.8, lat: 1.35 },
+  { city: "Sydney",      flag: "🇦🇺", offset: 10,   lon: 151.2, lat: -33.9 },
+  { city: "Auckland",    flag: "🇳🇿", offset: 12,   lon: 174.8, lat: -36.8 },
+  { city: "Cape Town",   flag: "🇿🇦", offset: 2,    lon: 18.4,  lat: -33.9 },
 ];
-function normCode(s) { return String(s).toUpperCase().replace(/\s+/g, ""); }
+const AVATARS = ["🐰","🦁","🐨","🐯","🦄","🐼","🐱","🐵","🦋","🐧","🐢","🦊","🐶","🐸","🐙","🦉"];
 
 function openAddFriend() {
   openSheet(`
-    <h2>Add a friend 🔑</h2>
-    <div class="note">Type your friend's secret code. A grown-up still has to approve before you can chat or call.</div>
-
-    <div class="card" style="text-align:center;margin-top:14px;background:#efeaff">
-      <div class="sub">Your code (share it with friends)</div>
-      <div style="font-family:'Baloo 2';font-size:30px;font-weight:800;letter-spacing:2px;color:var(--purple)">${esc(state.me.code)}</div>
-      <button class="btn btn--sm btn--ghost" id="copyCode" style="margin-top:6px">📋 Copy my code</button>
-    </div>
-
+    <h2>Add a friend 👋</h2>
+    <div class="note">A grown-up enters your friend's details. They still have to approve before you can call.</div>
     <div class="field">
-      <label>Friend's code</label>
-      <input id="addCode" placeholder="e.g. CAT-1357" autocomplete="off" style="text-transform:uppercase" />
+      <label>Friend's name</label>
+      <input id="afName" placeholder="e.g. Mia" maxlength="20" autocomplete="off" />
     </div>
-    <button class="btn btn--block btn--pink" id="addBtn">Find friend 🔎</button>
-    <div class="note" style="margin-top:10px">Try a demo code: <b>CAT-1357</b>, <b>MON-9081</b>, <b>FLY-4422</b>…</div>
+    <div class="field">
+      <label>WhatsApp number (with country code)</label>
+      <input id="afPhone" type="tel" placeholder="e.g. +44 7700 900123" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label>City (for the world map & local time)</label>
+      <select id="afCity">${CITIES.map((c, i) => `<option value="${i}">${c.flag} ${c.city}</option>`).join("")}</select>
+    </div>
+    <div class="field">
+      <label>Pick an animal</label>
+      <div class="chips" id="afAvatars">
+        ${AVATARS.slice(0, 8).map((a, i) => `<button class="chip ${i === 0 ? "chip--sel" : ""}" data-av="${a}">${a}</button>`).join("")}
+      </div>
+    </div>
+    <button class="btn btn--block btn--pink" id="afAdd">Ask a grown-up to add ✅</button>
   `);
 
-  $("#copyCode").onclick = () => {
-    if (navigator.clipboard) navigator.clipboard.writeText(state.me.code).catch(() => {});
-    toast("Code copied 📋");
-  };
+  let avatar = AVATARS[0];
+  const sheet = $(".sheet");
+  sheet.querySelectorAll("[data-av]").forEach(b => b.onclick = () => {
+    avatar = b.dataset.av;
+    sheet.querySelectorAll(".chip").forEach(c => c.classList.toggle("chip--sel", c === b));
+  });
 
-  $("#addBtn").onclick = () => {
-    const code = normCode($("#addCode").value);
-    if (!code) { toast("Type a code first"); return; }
-    if (code === normCode(state.me.code)) { toast("That's your own code 😄"); return; }
-    const f = FRIEND_POOL.find(x => normCode(x.code) === code);
-    if (!f) { toast("No friend found with that code 🤔"); return; }
-    if (state.friends.some(x => x.name === f.name)) { toast(`You're already connected with ${f.name}`); return; }
-    // Show the match, then send for parent approval
-    openSheet(`
-      <h2>Found a friend! 🎉</h2>
-      <div class="card row" style="margin-top:8px">
-        <div class="avatar avatar--lg">${f.avatar}</div>
-        <div><div class="name">${esc(f.name)} ${f.flag}</div><div class="sub">${esc(f.city)} • code ${esc(f.code)}</div></div>
-      </div>
-      <button class="btn btn--block btn--green" id="confirmAdd" style="margin-top:14px">Ask a grown-up to add ${esc(f.name)} ✅</button>
-      <button class="btn btn--block btn--ghost" id="cancelAdd" style="margin-top:8px">Cancel</button>
-    `);
-    $("#cancelAdd").onclick = closeSheet;
-    $("#confirmAdd").onclick = () => {
-      state.friends.push({ id: vid(), ...f, online: Math.random() > 0.5, status: "pending" });
-      addLog(`${state.me.name} used code ${f.code} to request ${f.name}`);
-      save(); closeSheet();
-      toast("Request sent to a grown-up ⏳");
-      render();
-    };
+  $("#afAdd").onclick = () => {
+    const name = $("#afName").value.trim();
+    const phone = $("#afPhone").value.trim();
+    if (!name) { toast("Type a name"); return; }
+    if (!hasPhone({ phone })) { toast("Enter a valid WhatsApp number"); return; }
+    if (state.friends.some(x => x.name.toLowerCase() === name.toLowerCase())) { toast(`Already added ${name}`); return; }
+    const c = CITIES[parseInt($("#afCity").value, 10)] || CITIES[0];
+    state.friends.push({ id: vid(), name, avatar, phone, ...c, online: false, status: "pending" });
+    addLog(`${state.me.name} asked to add ${name} (${phone})`);
+    save(); closeSheet();
+    toast("Request sent to a grown-up ⏳");
+    render();
   };
 }
 
@@ -741,6 +754,20 @@ function removeFriend(id) {
   const f = friendById(id); if (!f) return;
   state.friends = state.friends.filter(x => x.id !== id);
   addLog(`Parent removed friend: ${f.name}`); save(); render(); toast(`${f.name} removed`);
+}
+function editPhone(id) {
+  const f = friendById(id); if (!f) return;
+  openSheet(`
+    <h2>${f.avatar} ${esc(f.name)}'s number</h2>
+    <div class="note">WhatsApp number with country code — used to launch the call.</div>
+    <div class="field"><input id="epPhone" type="tel" value="${esc(f.phone || "")}" placeholder="+44 7700 900123" /></div>
+    <button class="btn btn--block btn--green" id="epSave">Save</button>
+  `);
+  $("#epSave").onclick = () => {
+    f.phone = $("#epPhone").value.trim();
+    addLog(`Parent updated ${f.name}'s number`); save(); closeSheet(); render();
+    toast("Number saved 💬");
+  };
 }
 function approveCall(id) {
   const c = state.calls.find(x => x.id === id); if (!c) return;
