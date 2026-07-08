@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "KidsConnect",
+    "slug": "kidsconnect",
+    "version": "1.0.0",
+    "scheme": "kidsconnect",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "backgroundColor": "#f3f1ff",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.kidsconnect",
+      "infoPlist": {
+        "NSCameraUsageDescription": "KidsConnect uses the camera so you can record a short video message for a friend.",
+        "NSMicrophoneUsageDescription": "KidsConnect uses the microphone to record sound in your video message."
+      }
+    },
+    "android": {
+      "package": "com.example.kidsconnect",
+      "permissions": ["CAMERA", "RECORD_AUDIO"]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow KidsConnect to use the camera to record video messages.",
+          "microphonePermission": "Allow KidsConnect to use the microphone to record video messages.",
+          "recordAudioAndroid": true
+        }
+      ]
+    ]
+  }
+}
