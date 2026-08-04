@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#6c5ce7" />
+  <title>Protein Tracker — hit your goal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --purple: #6c5ce7;
+      --purple-dark: #5a4bd4;
+      --pink: #fd79a8;
+      --mint: #00cec9;
+      --sun: #ffd166;
+      --green: #00b894;
+      --red: #ff6b6b;
+      --ink: #2d2a45;
+      --muted: #8a87a6;
+      --card: #ffffff;
+      --bg: #f3f1ff;
+      --line: #ece9ff;
+      --shadow: 0 10px 30px rgba(108, 92, 231, 0.18);
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Nunito", system-ui, sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at 20% 10%, #efe9ff, #dfe9ff 50%, #e7fbff 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    h1, h2, h3, .brand, .tab, button { font-family: "Baloo 2", "Nunito", sans-serif; }
+
+    /* ---------- Phone frame ---------- */
+    .device {
+      position: relative;
+      width: 390px;
+      max-width: 100%;
+      height: 844px;
+      max-height: 96vh;
+      background: #15132b;
+      border-radius: 46px;
+      padding: 12px;
+      box-shadow: 0 30px 70px rgba(45, 42, 69, 0.45), inset 0 0 0 2px #2a2750;
+    }
+    .device__notch {
+      position: absolute;
+      top: 12px; left: 50%;
+      transform: translateX(-50%);
+      width: 150px; height: 26px;
+      background: #15132b;
+      border-radius: 0 0 18px 18px;
+      z-index: 30;
+    }
+    .device__screen {
+      position: relative;
+      height: 100%;
+      background: var(--bg);
+      border-radius: 36px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .statusbar {
+      flex: 0 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 26px 6px;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+    .statusbar__icons { letter-spacing: 2px; font-size: 11px; }
+
+    .app {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 6px 18px 22px;
+      scrollbar-width: none;
+    }
+    .app::-webkit-scrollbar { display: none; }
+
+    /* ---------- Header ---------- */
+    .header { padding: 8px 2px 4px; }
+    .brand {
+      font-size: 26px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header__sub { color: var(--muted); font-weight: 700; font-size: 14px; margin-top: 2px; }
+
+    /* ---------- Progress ring card ---------- */
+    .goal-card {
+      background: linear-gradient(135deg, var(--purple), #8a7bff);
+      color: #fff;
+      border-radius: 26px;
+      padding: 20px;
+      margin-top: 14px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .ring { position: relative; width: 116px; height: 116px; flex: 0 0 auto; }
+    .ring svg { transform: rotate(-90deg); }
+    .ring__track { stroke: rgba(255, 255, 255, 0.25); }
+    .ring__fill { stroke: #fff; stroke-linecap: round; transition: stroke-dashoffset .6s ease; }
+    .ring__center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+    }
+    .ring__value { font-size: 30px; font-weight: 800; line-height: 1; font-family: "Baloo 2", sans-serif; }
+    .ring__unit { font-size: 12px; font-weight: 700; opacity: .9; margin-top: 2px; }
+
+    .goal-meta { flex: 1 1 auto; }
+    .goal-meta__row { display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+    .goal-meta__row span:last-child { font-weight: 800; }
+    .goal-meta__remaining { font-size: 13px; opacity: .92; margin-top: 6px; }
+    .goal-edit {
+      margin-top: 12px;
+      background: rgba(255, 255, 255, 0.18);
+      border: none;
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 7px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .goal-edit:active { transform: scale(.97); }
+
+    /* ---------- Section titles ---------- */
+    .section-title {
+      font-size: 15px;
+      font-weight: 800;
+      margin: 22px 2px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .section-title .hint { color: var(--muted); font-weight: 700; font-size: 12px; }
+
+    /* ---------- Quick add ---------- */
+    .quick {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .quick__btn {
+      background: var(--card);
+      border: 2px solid var(--line);
+      border-radius: 18px;
+      padding: 12px 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: transform .1s ease, border-color .15s ease;
+    }
+    .quick__btn:active { transform: scale(.95); }
+    .quick__btn:hover { border-color: var(--purple); }
+    .quick__emoji { font-size: 24px; }
+    .quick__name { font-weight: 800; font-size: 12px; margin-top: 4px; }
+    .quick__g { color: var(--purple); font-weight: 800; font-size: 12px; }
+
+    /* ---------- Add form ---------- */
+    .add-form {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      margin-top: 4px;
+    }
+    .field { margin-bottom: 10px; }
+    .field label { display: block; font-weight: 800; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+    .field input {
+      width: 100%;
+      border: 2px solid var(--line);
+      border-radius: 14px;
+      padding: 11px 13px;
+      font-family: "Nunito", sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--ink);
+      outline: none;
+    }
+    .field input:focus { border-color: var(--purple); }
+    .form-row { display: flex; gap: 10px; }
+    .form-row .field { flex: 1; }
+    .btn-primary {
+      width: 100%;
+      border: none;
+      background: linear-gradient(135deg, var(--pink), #ff9ec4);
+      color: #fff;
+      font-weight: 800;
+      font-size: 16px;
+      padding: 13px;
+      border-radius: 16px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(253, 121, 168, 0.35);
+      transition: transform .1s ease;
+    }
+    .btn-primary:active { transform: scale(.98); }
+
+    /* ---------- Entry list ---------- */
+    .entries { list-style: none; padding: 0; margin: 4px 0 0; }
+    .entry {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-bottom: 9px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 14px rgba(108, 92, 231, 0.08);
+    }
+    .entry__emoji { font-size: 22px; flex: 0 0 auto; }
+    .entry__body { flex: 1 1 auto; min-width: 0; }
+    .entry__name { font-weight: 800; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .entry__time { color: var(--muted); font-weight: 700; font-size: 12px; }
+    .entry__g {
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--purple);
+      flex: 0 0 auto;
+    }
+    .entry__del {
+      border: none;
+      background: var(--bg);
+      color: var(--muted);
+      width: 30px; height: 30px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      flex: 0 0 auto;
+      line-height: 1;
+    }
+    .entry__del:hover { background: #ffe3e3; color: var(--red); }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      font-weight: 700;
+      padding: 26px 10px;
+    }
+    .empty__emoji { font-size: 40px; display: block; margin-bottom: 8px; }
+
+    /* ---------- History ---------- */
+    .history-day {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-bottom: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 14px rgba(108, 92, 231, 0.08);
+    }
+    .history-day__date { font-weight: 800; font-size: 14px; }
+    .history-day__sub { color: var(--muted); font-weight: 700; font-size: 12px; }
+    .history-day__total { font-weight: 800; font-size: 15px; }
+    .badge {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 999px;
+      margin-left: 8px;
+    }
+    .badge--hit { background: #d9f7ee; color: var(--green); }
+    .badge--miss { background: #fff0d6; color: #d99a1e; }
+
+    .footer-note {
+      text-align: center;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 11px;
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="device">
+    <div class="device__notch"></div>
+    <div class="device__screen">
+
+      <div class="statusbar">
+        <span id="statusClock">9:41</span>
+        <span class="statusbar__icons">📶 🔋</span>
+      </div>
+
+      <main id="app" class="app"></main>
+
+    </div>
+  </div>
+
+  <script>
+  /* =========================================================================
+     Protein Tracker — a tiny, self-contained daily protein logger.
+     No build step, no backend. Everything is saved in localStorage so the
+     tracker remembers your goal and every entry, per day, right in the browser.
+     ========================================================================= */
+  (function () {
+    "use strict";
+
+    var STORE_KEY = "proteinTracker.v1";
+    var DEFAULT_GOAL = 120; // grams/day — a common target; fully editable.
+
+    // A few common protein sources for one-tap logging.
+    var QUICK_FOODS = [
+      { emoji: "🍗", name: "Chicken breast", g: 31 },
+      { emoji: "🥚", name: "Egg", g: 6 },
+      { emoji: "🥛", name: "Greek yogurt", g: 17 },
+      { emoji: "🧀", name: "Cottage cheese", g: 14 },
+      { emoji: "🐟", name: "Salmon", g: 25 },
+      { emoji: "🥤", name: "Protein shake", g: 25 },
+      { emoji: "🫘", name: "Lentils (cup)", g: 18 },
+      { emoji: "🥜", name: "Peanut butter", g: 8 },
+      { emoji: "🥩", name: "Lean beef", g: 26 }
+    ];
+
+    // ---- Storage helpers ----------------------------------------------------
+    function load() {
+      try {
+        var raw = localStorage.getItem(STORE_KEY);
+        if (!raw) return { goal: DEFAULT_GOAL, entries: [] };
+        var data = JSON.parse(raw);
+        if (typeof data.goal !== "number" || data.goal <= 0) data.goal = DEFAULT_GOAL;
+        if (!Array.isArray(data.entries)) data.entries = [];
+        return data;
+      } catch (e) {
+        return { goal: DEFAULT_GOAL, entries: [] };
+      }
+    }
+    function save(data) {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch (e) {}
+    }
+
+    var state = load();
+
+    // ---- Date helpers -------------------------------------------------------
+    function dayKey(d) {
+      // Local-date key (YYYY-MM-DD) so entries group by the user's own day.
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, "0");
+      var day = String(d.getDate()).padStart(2, "0");
+      return y + "-" + m + "-" + day;
+    }
+    function todayKey() { return dayKey(new Date()); }
+    function fmtTime(ts) {
+      var d = new Date(ts);
+      var h = d.getHours();
+      var m = String(d.getMinutes()).padStart(2, "0");
+      var ap = h >= 12 ? "PM" : "AM";
+      h = h % 12; if (h === 0) h = 12;
+      return h + ":" + m + " " + ap;
+    }
+    function prettyDate(key) {
+      var parts = key.split("-");
+      var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      var t = todayKey();
+      if (key === t) return "Today";
+      var yd = new Date(); yd.setDate(yd.getDate() - 1);
+      if (key === dayKey(yd)) return "Yesterday";
+      return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+    }
+
+    // ---- Derived data -------------------------------------------------------
+    function entriesFor(key) {
+      return state.entries.filter(function (e) { return e.day === key; });
+    }
+    function totalFor(key) {
+      return entriesFor(key).reduce(function (sum, e) { return sum + e.g; }, 0);
+    }
+    function historyDays() {
+      // Distinct days that have entries, newest first, excluding today.
+      var seen = {};
+      var days = [];
+      state.entries.forEach(function (e) {
+        if (e.day !== todayKey() && !seen[e.day]) { seen[e.day] = true; days.push(e.day); }
+      });
+      days.sort();
+      days.reverse();
+      return days;
+    }
+
+    // ---- Actions ------------------------------------------------------------
+    function addEntry(name, grams, emoji) {
+      grams = Math.round(Number(grams));
+      if (!name || !grams || grams <= 0) return;
+      state.entries.push({
+        id: "e" + state.entries.length + "-" + Math.round(performance.now()),
+        day: todayKey(),
+        ts: new Date().getTime(),
+        name: String(name).slice(0, 40),
+        g: grams,
+        emoji: emoji || "🍽️"
+      });
+      save(state);
+      render();
+    }
+    function removeEntry(id) {
+      state.entries = state.entries.filter(function (e) { return e.id !== id; });
+      save(state);
+      render();
+    }
+    function setGoal() {
+      var input = window.prompt("Daily protein goal (grams):", String(state.goal));
+      if (input === null) return;
+      var n = Math.round(Number(input));
+      if (n > 0 && n <= 1000) { state.goal = n; save(state); render(); }
+    }
+
+    // ---- Rendering ----------------------------------------------------------
+    var app = document.getElementById("app");
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
+    function ringSvg(pct) {
+      var R = 50, C = 2 * Math.PI * R;
+      var offset = C * (1 - Math.min(pct, 1));
+      return (
+        '<svg width="116" height="116" viewBox="0 0 116 116">' +
+          '<circle class="ring__track" cx="58" cy="58" r="' + R + '" fill="none" stroke-width="12"/>' +
+          '<circle class="ring__fill" cx="58" cy="58" r="' + R + '" fill="none" stroke-width="12" ' +
+            'stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + offset.toFixed(1) + '"/>' +
+        '</svg>'
+      );
+    }
+
+    function render() {
+      var goal = state.goal;
+      var total = totalFor(todayKey());
+      var pct = goal > 0 ? total / goal : 0;
+      var remaining = Math.max(goal - total, 0);
+      var pctText = Math.round(pct * 100);
+
+      var html = "";
+
+      // Header
+      html +=
+        '<div class="header">' +
+          '<div class="brand">💪 Protein</div>' +
+          '<div class="header__sub">Log what you eat, hit your goal.</div>' +
+        '</div>';
+
+      // Goal / progress card
+      html +=
+        '<div class="goal-card">' +
+          '<div class="ring">' + ringSvg(pct) +
+            '<div class="ring__center">' +
+              '<div class="ring__value">' + total + '</div>' +
+              '<div class="ring__unit">of ' + goal + ' g</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="goal-meta">' +
+            '<div class="goal-meta__row"><span>Progress</span><span>' + pctText + '%</span></div>' +
+            '<div class="goal-meta__remaining">' +
+              (remaining > 0
+                ? remaining + ' g to go today 🎯'
+                : 'Goal smashed! +' + (total - goal) + ' g over 🎉') +
+            '</div>' +
+            '<button class="goal-edit" id="editGoal">✏️ Edit goal</button>' +
+          '</div>' +
+        '</div>';
+
+      // Quick add
+      html += '<div class="section-title">Quick add <span class="hint">one tap</span></div>';
+      html += '<div class="quick">';
+      QUICK_FOODS.forEach(function (f, i) {
+        html +=
+          '<button class="quick__btn" data-quick="' + i + '">' +
+            '<div class="quick__emoji">' + f.emoji + '</div>' +
+            '<div class="quick__name">' + esc(f.name) + '</div>' +
+            '<div class="quick__g">+' + f.g + 'g</div>' +
+          '</button>';
+      });
+      html += '</div>';
+
+      // Custom add form
+      html += '<div class="section-title">Add your own</div>';
+      html +=
+        '<form class="add-form" id="addForm">' +
+          '<div class="form-row">' +
+            '<div class="field" style="flex:2">' +
+              '<label for="fName">Food</label>' +
+              '<input id="fName" type="text" placeholder="e.g. Tofu stir-fry" maxlength="40" autocomplete="off" />' +
+            '</div>' +
+            '<div class="field">' +
+              '<label for="fGrams">Protein (g)</label>' +
+              '<input id="fGrams" type="number" inputmode="numeric" min="1" max="500" placeholder="20" />' +
+            '</div>' +
+          '</div>' +
+          '<button type="submit" class="btn-primary">＋ Add protein</button>' +
+        '</form>';
+
+      // Today's entries
+      var todays = entriesFor(todayKey()).slice().sort(function (a, b) { return b.ts - a.ts; });
+      html += '<div class="section-title">Today\'s log <span class="hint">' + todays.length + ' item' + (todays.length === 1 ? '' : 's') + '</span></div>';
+      if (todays.length === 0) {
+        html +=
+          '<div class="empty">' +
+            '<span class="empty__emoji">🍽️</span>' +
+            'Nothing logged yet.<br>Tap a food above to start.' +
+          '</div>';
+      } else {
+        html += '<ul class="entries">';
+        todays.forEach(function (e) {
+          html +=
+            '<li class="entry">' +
+              '<div class="entry__emoji">' + (e.emoji || "🍽️") + '</div>' +
+              '<div class="entry__body">' +
+                '<div class="entry__name">' + esc(e.name) + '</div>' +
+                '<div class="entry__time">' + fmtTime(e.ts) + '</div>' +
+              '</div>' +
+              '<div class="entry__g">' + e.g + 'g</div>' +
+              '<button class="entry__del" data-del="' + e.id + '" aria-label="Delete">✕</button>' +
+            '</li>';
+        });
+        html += '</ul>';
+      }
+
+      // History
+      var days = historyDays();
+      if (days.length > 0) {
+        html += '<div class="section-title">History <span class="hint">last ' + Math.min(days.length, 7) + ' days</span></div>';
+        days.slice(0, 7).forEach(function (key) {
+          var t = totalFor(key);
+          var hit = t >= state.goal;
+          html +=
+            '<div class="history-day">' +
+              '<div>' +
+                '<div class="history-day__date">' + prettyDate(key) +
+                  '<span class="badge ' + (hit ? 'badge--hit' : 'badge--miss') + '">' +
+                    (hit ? 'Goal hit' : Math.round((t / state.goal) * 100) + '%') +
+                  '</span>' +
+                '</div>' +
+                '<div class="history-day__sub">' + entriesFor(key).length + ' items logged</div>' +
+              '</div>' +
+              '<div class="history-day__total">' + t + ' g</div>' +
+            '</div>';
+        });
+      }
+
+      html +=
+        '<div class="footer-note">' +
+          'Saved on this device only (localStorage).<br>Your data never leaves your browser.' +
+        '</div>';
+
+      app.innerHTML = html;
+      wire();
+    }
+
+    // ---- Event wiring (re-run each render) ----------------------------------
+    function wire() {
+      var editGoal = document.getElementById("editGoal");
+      if (editGoal) editGoal.addEventListener("click", setGoal);
+
+      Array.prototype.forEach.call(document.querySelectorAll("[data-quick]"), function (btn) {
+        btn.addEventListener("click", function () {
+          var f = QUICK_FOODS[Number(btn.getAttribute("data-quick"))];
+          addEntry(f.name, f.g, f.emoji);
+        });
+      });
+
+      Array.prototype.forEach.call(document.querySelectorAll("[data-del]"), function (btn) {
+        btn.addEventListener("click", function () {
+          removeEntry(btn.getAttribute("data-del"));
+        });
+      });
+
+      var form = document.getElementById("addForm");
+      if (form) {
+        form.addEventListener("submit", function (ev) {
+          ev.preventDefault();
+          var name = document.getElementById("fName").value.trim();
+          var grams = document.getElementById("fGrams").value;
+          if (name && Number(grams) > 0) addEntry(name, grams, "🍽️");
+        });
+      }
+    }
+
+    // ---- Live status-bar clock ---------------------------------------------
+    function tickClock() {
+      var el = document.getElementById("statusClock");
+      if (!el) return;
+      var d = new Date();
+      var h = d.getHours(), m = String(d.getMinutes()).padStart(2, "0");
+      var ap = h >= 12 ? "PM" : "AM";
+      h = h % 12; if (h === 0) h = 12;
+      el.textContent = h + ":" + m + " " + ap;
+    }
+    tickClock();
+    setInterval(tickClock, 15000);
+
+    render();
+  })();
+  </script>
+</body>
+</html>
