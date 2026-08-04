@@ -54,20 +54,6 @@ Tap the **Parent** tab and enter the demo PIN **`1234`**. Grown-ups can:
 | `styles.css` | Kid-friendly visual design (colors, cards, phone chrome)      |
 | `app.js`     | All app logic, mock data, screens, and the four features      |
 
-## 💪 Bonus: Protein Tracker (`protein.html`)
-A separate, self-contained mini-app for logging your daily protein. Open
-**`protein.html`** directly in any browser — no build step, no backend.
-
-- **Set a daily goal** (grams) and watch a progress ring fill as you log.
-- **Quick-add** common protein sources (chicken, eggs, Greek yogurt, shakes…)
-  with one tap, or add any custom food + gram amount.
-- **Today's log** lists every entry with the time; delete any with one tap.
-- **History** shows previous days with a "goal hit" badge and daily totals.
-
-Everything is saved in your browser (`localStorage`), so it remembers your goal
-and entries per day. Your data never leaves the device. It shares KidsConnect's
-look and feel but runs entirely on its own.
-
 ## 🧭 Notes for turning this into a real app
 This prototype deliberately fakes the hard parts. A production version would need:
 - Real auth + a backend for friend codes, presence, and message delivery
